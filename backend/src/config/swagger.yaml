@@ -1,0 +1,345 @@
+openapi: 3.0.0
+info:
+  title: TaskFlow API
+  version: 1.0.0
+  description: |
+    Scalable REST API with JWT Authentication & Role-Based Access Control.
+    
+    ## Authentication
+    Use the `/auth/login` endpoint to obtain a JWT token, then click "Authorize" and enter:
+    `Bearer <your_token>`
+    
+  contact:
+    name: TaskFlow Support
+    email: support@taskflow.dev
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:5000/api/v1
+    description: Development server
+  - url: https://api.taskflow.dev/api/v1
+    description: Production server
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    User:
+      type: object
+      properties:
+        _id: { type: string, example: "64abc123..." }
+        name: { type: string, example: "John Doe" }
+        email: { type: string, format: email }
+        role: { type: string, enum: [user, admin] }
+        isActive: { type: boolean }
+        createdAt: { type: string, format: date-time }
+
+    Task:
+      type: object
+      properties:
+        _id: { type: string }
+        title: { type: string, example: "Build API" }
+        description: { type: string }
+        status: { type: string, enum: [todo, in-progress, done] }
+        priority: { type: string, enum: [low, medium, high] }
+        dueDate: { type: string, format: date-time }
+        tags: { type: array, items: { type: string } }
+        isOverdue: { type: boolean }
+        createdAt: { type: string, format: date-time }
+
+    Error:
+      type: object
+      properties:
+        success: { type: boolean, example: false }
+        message: { type: string }
+        errors: { type: array, items: { type: object } }
+
+    Success:
+      type: object
+      properties:
+        success: { type: boolean, example: true }
+        message: { type: string }
+        data: { type: object }
+
+security:
+  - bearerAuth: []
+
+paths:
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a new user
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password]
+              properties:
+                name: { type: string, example: "John Doe" }
+                email: { type: string, format: email, example: "john@example.com" }
+                password: { type: string, minLength: 8, example: "SecurePass1" }
+                role: { type: string, enum: [user, admin], default: user }
+      responses:
+        '201':
+          description: User registered successfully
+        '409':
+          description: Email already exists
+        '422':
+          description: Validation error
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login and get JWT tokens
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string }
+      responses:
+        '200':
+          description: Login successful, returns accessToken and refreshToken
+        '401':
+          description: Invalid credentials
+
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: Get current user profile
+      responses:
+        '200':
+          description: User profile
+        '401':
+          description: Unauthorized
+
+  /auth/update-profile:
+    put:
+      tags: [Auth]
+      summary: Update user profile
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                email: { type: string }
+      responses:
+        '200': { description: Profile updated }
+
+  /auth/change-password:
+    put:
+      tags: [Auth]
+      summary: Change password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [currentPassword, newPassword]
+              properties:
+                currentPassword: { type: string }
+                newPassword: { type: string, minLength: 8 }
+      responses:
+        '200': { description: Password changed }
+        '401': { description: Wrong current password }
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Logout user
+      responses:
+        '200': { description: Logged out }
+
+  /tasks:
+    get:
+      tags: [Tasks]
+      summary: Get all tasks (paginated)
+      parameters:
+        - in: query
+          name: page
+          schema: { type: integer, default: 1 }
+        - in: query
+          name: limit
+          schema: { type: integer, default: 10 }
+        - in: query
+          name: status
+          schema: { type: string, enum: [todo, in-progress, done] }
+        - in: query
+          name: priority
+          schema: { type: string, enum: [low, medium, high] }
+        - in: query
+          name: search
+          schema: { type: string }
+        - in: query
+          name: sortBy
+          schema: { type: string, default: createdAt }
+        - in: query
+          name: order
+          schema: { type: string, enum: [asc, desc], default: desc }
+      responses:
+        '200': { description: List of tasks with pagination }
+
+    post:
+      tags: [Tasks]
+      summary: Create a new task
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title]
+              properties:
+                title: { type: string, minLength: 3 }
+                description: { type: string }
+                status: { type: string, enum: [todo, in-progress, done] }
+                priority: { type: string, enum: [low, medium, high] }
+                dueDate: { type: string, format: date-time }
+                tags: { type: array, items: { type: string } }
+      responses:
+        '201': { description: Task created }
+        '422': { description: Validation error }
+
+  /tasks/{id}:
+    get:
+      tags: [Tasks]
+      summary: Get a single task
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Task details }
+        '404': { description: Task not found }
+
+    put:
+      tags: [Tasks]
+      summary: Update a task
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title: { type: string }
+                description: { type: string }
+                status: { type: string }
+                priority: { type: string }
+      responses:
+        '200': { description: Task updated }
+
+    delete:
+      tags: [Tasks]
+      summary: Delete a task
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Task deleted }
+        '404': { description: Task not found }
+
+  /tasks/{id}/archive:
+    patch:
+      tags: [Tasks]
+      summary: Archive a task
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Task archived }
+
+  /tasks/stats:
+    get:
+      tags: [Tasks]
+      summary: Get task statistics for current user
+      responses:
+        '200': { description: Statistics by status and priority }
+
+  /admin/stats:
+    get:
+      tags: [Admin]
+      summary: Get platform-wide dashboard stats (admin only)
+      responses:
+        '200': { description: Stats }
+        '403': { description: Forbidden }
+
+  /admin/users:
+    get:
+      tags: [Admin]
+      summary: Get all users (admin only)
+      parameters:
+        - in: query
+          name: page
+          schema: { type: integer }
+        - in: query
+          name: role
+          schema: { type: string }
+        - in: query
+          name: search
+          schema: { type: string }
+      responses:
+        '200': { description: Users list }
+
+  /admin/users/{id}/toggle-status:
+    patch:
+      tags: [Admin]
+      summary: Activate/deactivate a user
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Status toggled }
+
+  /admin/users/{id}/role:
+    patch:
+      tags: [Admin]
+      summary: Change user role
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                role: { type: string, enum: [user, admin] }
+      responses:
+        '200': { description: Role changed }
+
+  /admin/tasks:
+    get:
+      tags: [Admin]
+      summary: Get all tasks across all users
+      responses:
+        '200': { description: All tasks }
