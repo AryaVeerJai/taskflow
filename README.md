@@ -315,7 +315,3 @@ Rate limit counters → Redis instead of in-memory (multi-instance safe)
 | 500 | Internal Server Error |
 
 ---
-
-## 📝 License
-
-MIT — free to use, modify, and distribute.
