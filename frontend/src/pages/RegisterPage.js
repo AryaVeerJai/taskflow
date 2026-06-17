@@ -114,14 +114,14 @@ export default function RegisterPage() {
               {errors.password && <span className="error-msg">{errors.password}</span>}
             </div>
 
-            <div className="form-group">
+            {/* <div className="form-group">
               <label className="label">Account type</label>
               <select className="select" value={form.role} onChange={e => setForm(p => ({ ...p, role: e.target.value }))}>
                 <option value="user">User</option>
                 <option value="admin">Admin</option>
               </select>
               <span style={{ fontSize: '11px', color: 'var(--text3)' }}>Note: First registered user always becomes admin.</span>
-            </div>
+            </div> */}
 
             <button type="submit" className="btn btn-primary btn-lg" disabled={loading} style={{ width: '100%', justifyContent: 'center', marginTop: '4px' }}>
               {loading ? <><div className="spinner" /> Creating account...</> : 'Create account'}
