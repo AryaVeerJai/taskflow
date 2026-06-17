@@ -95,6 +95,14 @@ try {
   logger.warn('Swagger docs failed to load: ' + e.message);
 }
 
+app.get('/', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'TaskFlow API Running',
+    version: '1.0.0'
+  });
+});
+
 // ─── Health Check ─────────────────────────────────────────────
 app.get('/health', (req, res) => {
   res.json({
